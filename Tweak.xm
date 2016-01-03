@@ -19,7 +19,7 @@
 - (void)customInit {
   NSArray *windows = [[UIApplication sharedApplication] windows];
   for (UIWindow *window in windows) {
-    if ([[[window class] description] isEqualToString:@"SBHomeScreenWindow"]) {
+    if ([window isKindOfClass:%c(SBHomeScreenWindow)]) {
       [self setSbWindow:window];
       break;
     }
