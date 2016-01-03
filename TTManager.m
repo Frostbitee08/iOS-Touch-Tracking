@@ -1,4 +1,3 @@
-#import <UIKit/UIKit.h>
 #import "TTManager.h"
 
 NSString *const kTouchTime  = @"t";

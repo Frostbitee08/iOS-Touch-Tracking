@@ -1,10 +1,8 @@
-#import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
+#import <substrate.h>
 
 #import "TTManager.h"
-
-%config(generator=internal)
 
 @interface FBExclusiveTouchGestureRecognizer
 - (void)setSbWindow:(UIWindow *)object;
