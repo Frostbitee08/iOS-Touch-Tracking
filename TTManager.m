@@ -19,11 +19,6 @@ static const char * queueTitle = "ttq";
         
         //Ensure there is a file to write to
         [self createWriteFile];
-        
-        //Set up loop to generate new file
-        NSDate *fireDate = [[NSCalendar currentCalendar] nextDateAfterDate:[NSDate date] matchingHour:0 minute:0 second:0 options:NSCalendarMatchNextTime];
-        NSTimer *timer = [[NSTimer alloc] initWithFireDate:fireDate interval:86400 target:self selector:@selector(createWriteFile) userInfo:nil repeats:YES];
-        [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSDefaultRunLoopMode];
     }
     return self;
 }
@@ -50,19 +45,19 @@ static const char * queueTitle = "ttq";
     if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
         NSDictionary *attributes = @{NSFilePosixPermissions:[NSNumber numberWithShort:0777]};
         [[NSFileManager defaultManager] createFileAtPath:filePath contents:[self openingFileContents] attributes:attributes];
-    }
-    
-    NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
-    NSMutableArray *closedFiles = [[NSMutableArray alloc] init];
-    [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        NSString *filename = (NSString *)obj;
-        if (![[filePath lastPathComponent] isEqualToString:filename] && ![closedDirectoryName isEqualToString:filename]) {
-            [closedFiles addObject:filename];
+        
+        NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
+        NSMutableArray *closedFiles = [[NSMutableArray alloc] init];
+        [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+            NSString *filename = (NSString *)obj;
+            if (![[filePath lastPathComponent] isEqualToString:filename] && ![closedDirectoryName isEqualToString:filename]) {
+                [closedFiles addObject:filename];
+            }
+        }];
+        
+        for (NSString *filename in closedFiles) {
+            [self closeFileWithName:filename];
         }
-    }];
-    
-    for (NSString *filename in closedFiles) {
-        [self closeFileWithName:filename];
     }
 }
 
@@ -103,6 +98,8 @@ static const char * queueTitle = "ttq";
     dispatch_queue_t queue = dispatch_queue_create(queueTitle, 0);
     dispatch_async(queue, ^{
         if (touches.allObjects.count) {
+            [self createWriteFile];
+            
             NSMutableString *writeString = [[NSMutableString alloc] init];
             [writeString appendString:@"\t{\n"];
             [writeString appendString:@"\t\t\"T\" : [\n"];
