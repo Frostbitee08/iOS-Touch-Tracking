@@ -5,6 +5,7 @@ NSString *const settingsFilePath = @"/var/mobile/Library/Preferences/com.roccode
 NSString *const kTrackingEnabled = @"TrackingEnabled";
 NSString *const kUploadEnabled = @"UploadEnabled";
 NSString *const kCellularUploadEnabled = @"CellularUploadEnabled";
+NSString *const kDeleteLogsEnabled = @"DeleteLogsEnabled";
 
 #import "TTSettingsManager.h"
 
@@ -49,6 +50,10 @@ NSString *const kCellularUploadEnabled = @"CellularUploadEnabled";
 
 - (BOOL)isCellularUploadEnabled {
   return [settings[kCellularUploadEnabled] boolValue];
+}
+
+- (BOOL)isDeleteLogsEnabled {
+  return [settings[kDeleteLogsEnabled] boolValue];
 }
 
 //MARK: Actions

@@ -29,7 +29,15 @@
 			<key>defaults</key>	<string>com.roccodelpriore.touchtracking.settings</string>
 			<key>key</key>		<string>CellularUploadEnabled</string>
 			<key>label</key>	<string>Use Cellular Network</string>
+                </dict> 
+                <dict>
+			<key>cell</key>		<string>PSSwitchCell</string>
+			<key>default</key>	<true/>	
+			<key>defaults</key>	<string>com.roccodelpriore.touchtracking.settings</string>
+			<key>key</key>		<string>DeleteLogsEnabled</string>
+			<key>label</key>	<string>Delete Logs After Uplaod</string>
 		</dict>
+ 
         </array>
 	<key>title</key>
 	<string>iOS Touch Tracking</string>

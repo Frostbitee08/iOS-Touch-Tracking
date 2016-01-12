@@ -17,6 +17,7 @@ extern NSString *const settingsFilePath;
 - (BOOL)isTrackingEnabled;
 - (BOOL)isCellularUploadEnabled;
 - (BOOL)isUploadEnabled;
+- (BOOL)isDeleteLogsEnabled;
 
 - (void)reloadSettings;
 
