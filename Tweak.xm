@@ -2,6 +2,7 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
+#import "preferences/TTSettingsManager.h"
 #import "TTManager.h"
 
 @interface FBExclusiveTouchGestureRecognizer
@@ -64,11 +65,11 @@
   NSMutableSet *touches = [self touches];
 
   for (UITouch *touch in touchObjects) {
-    CGPoint coorindate = [touch locationInView:sbWindow.rootViewController.view];
-    NSValue *touchPoint = [NSValue valueWithCGPoint:coorindate];
-    NSNumber *touchTime = @(touch.timestamp);
+     CGPoint coorindate = [touch locationInView:sbWindow.rootViewController.view];
+     NSValue *touchPoint = [NSValue valueWithCGPoint:coorindate];
+     NSNumber *touchTime = @(touch.timestamp);
 
-    [touches addObject:@{kTouchTime:touchTime, kTouchPoint:touchPoint}];
+     [touches addObject:@{kTouchTime:touchTime, kTouchPoint:touchPoint}];
   }
 }
 
@@ -85,7 +86,9 @@
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touchObjects withEvent:(UIEvent *)arg2 {
   [self addTouches:touchObjects];
-  [[TTManager sharedInstance] recordTouches:[self touches]];
+  if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
+    [[TTManager sharedInstance] recordTouches:[self touches]];
+  }
   %orig;
 }
 
