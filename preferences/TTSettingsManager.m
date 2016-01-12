@@ -3,6 +3,8 @@ NSString *const settingsFilePath = @"/var/mobile/Library/Preferences/com.roccode
 
 //Keys
 NSString *const kTrackingEnabled = @"TrackingEnabled";
+NSString *const kUploadEnabled = @"UploadEnabled";
+NSString *const kCellularUploadEnabled = @"CellularUploadEnabled";
 
 #import "TTSettingsManager.h"
 
@@ -30,10 +32,23 @@ NSString *const kTrackingEnabled = @"TrackingEnabled";
     return sharedInstance;
 }
 
+- (void)dealloc {
+  [super dealloc];
+  [settings release];
+}
+
 //MARK: Accessors
 
 - (BOOL)isTrackingEnabled {
   return [settings[kTrackingEnabled] boolValue];
+}
+
+- (BOOL)isUploadEnabled {
+  return [settings[kUploadEnabled] boolValue];
+}
+
+- (BOOL)isCellularUploadEnabled {
+  return [settings[kCellularUploadEnabled] boolValue];
 }
 
 //MARK: Actions

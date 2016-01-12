@@ -2,7 +2,6 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
-#import "preferences/TTSettingsManager.h"
 #import "TTManager.h"
 
 @interface FBExclusiveTouchGestureRecognizer
@@ -86,9 +85,7 @@
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touchObjects withEvent:(UIEvent *)arg2 {
   [self addTouches:touchObjects];
-  if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
-    [[TTManager sharedInstance] recordTouches:[self touches]];
-  }
+  [[TTManager sharedInstance] recordTouches:[self touches]];
   %orig;
 }
 

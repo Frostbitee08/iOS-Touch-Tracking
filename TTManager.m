@@ -1,4 +1,6 @@
 #import "TTManager.h"
+#import "Reachability.h"
+#import "preferences/TTSettingsManager.h"
 
 NSString *const kTouchTime  = @"t";
 NSString *const kTouchPoint = @"p";
@@ -8,11 +10,20 @@ static NSString *const closedDirectoryName = @"Closed";
 static NSString *const fileExtension = @".json";
 static const char * queueTitle = "ttq";
 
-@implementation TTManager
-
+@implementation TTManager {
+    Reachability *reachability;
+    NSInteger networkStatus;
+}
+  
 - (instancetype)init {
     self = [super init];
     if (self) {
+        //Setup Network Reachabiluty
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged) name:kReachabilityChangedNotification object:nil];
+        reachability = [[Reachability reachabilityForInternetConnection] retain];
+        networkStatus = reachability.currentReachabilityStatus;
+        [reachability startNotifier];
+
         //Ensure Directories Exist
         [self createDirectoryAtPath:masterDirectoryPath];
         [self createDirectoryAtPath:[masterDirectoryPath stringByAppendingString:closedDirectoryName]];
@@ -30,6 +41,11 @@ static const char * queueTitle = "ttq";
         instance = [[self alloc] init];
     });
     return instance;
+}
+
+- (void)dealloc {
+  [super dealloc];
+  [reachability release];
 }
 
 - (void)createDirectoryAtPath:(NSString *)path {
@@ -54,9 +70,12 @@ static const char * queueTitle = "ttq";
                 [closedFiles addObject:filename];
             }
         }];
-        
-        for (NSString *filename in closedFiles) {
-            [self closeFileWithName:filename];
+
+        if (closedFiles.count) {
+            for (NSString *filename in closedFiles) {
+              [self closeFileWithName:filename];
+            }
+            [self uploadClosedFiles];
         }
     }
 }
@@ -72,6 +91,15 @@ static const char * queueTitle = "ttq";
     [fileHandle closeFile];
     
     [[NSFileManager defaultManager] moveItemAtPath:source toPath:destination error:nil];
+}
+
+- (void)uploadClosedFiles {
+    if (networkStatus == 0) NSLog(@"TT Upload Failed: No network"); return;
+    if (![[TTSettingsManager sharedInstance] isUploadEnabled]) NSLog(@"TT Upload Failed: Boo Network"); return;
+    if (networkStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) NSLog(@"TT Upload Failed: No Cell Network"); return;
+
+    NSLog(@"TT Uploading Stuff");
+    //Upload Stuff
 }
 
 - (NSData *)openingFileContents {
@@ -95,43 +123,50 @@ static const char * queueTitle = "ttq";
 }
 
 - (void)recordTouches:(NSSet *)touches {
-    dispatch_queue_t queue = dispatch_queue_create(queueTitle, 0);
-    dispatch_async(queue, ^{
-        if (touches.allObjects.count) {
-            [self createWriteFile];
-            
-            NSMutableString *writeString = [[NSMutableString alloc] init];
-            [writeString appendString:@"\t{\n"];
-            [writeString appendString:@"\t\t\"T\" : [\n"];
-            
-            for (NSDictionary *touch in touches.allObjects) {
-                NSTimeInterval systemUptime = [[NSProcessInfo processInfo] systemUptime];
-                NSTimeInterval touchTime = [touch[kTouchTime] doubleValue];
-                double difference = systemUptime-touchTime;
+
+    if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
+        dispatch_queue_t queue = dispatch_queue_create(queueTitle, 0);
+        dispatch_async(queue, ^{
+            if (touches.allObjects.count) {
+                [self createWriteFile];
                 
-                NSDate *touchDate = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
-                NSTimeInterval secondsSinceMidnight = [touchDate timeIntervalSinceDate:[[NSCalendar currentCalendar] startOfDayForDate:touchDate]];
-                CGPoint coorindate = [touch[kTouchPoint] CGPointValue];
+                NSMutableString *writeString = [[NSMutableString alloc] init];
+                [writeString appendString:@"\t{\n"];
+                [writeString appendString:@"\t\t\"T\" : [\n"];
                 
-                NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"x\":%f, \"y\":%f}", secondsSinceMidnight, coorindate.x, coorindate.y];
-                if (touch == [touches.allObjects lastObject]) {
-                    [touchString appendString:@"\n"];
+                for (NSDictionary *touch in touches.allObjects) {
+                    NSTimeInterval systemUptime = [[NSProcessInfo processInfo] systemUptime];
+                    NSTimeInterval touchTime = [touch[kTouchTime] doubleValue];
+                    double difference = systemUptime-touchTime;
+                    
+                    NSDate *touchDate = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
+                    NSTimeInterval secondsSinceMidnight = [touchDate timeIntervalSinceDate:[[NSCalendar currentCalendar] startOfDayForDate:touchDate]];
+                    CGPoint coorindate = [touch[kTouchPoint] CGPointValue];
+                    
+                    NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"x\":%f, \"y\":%f}", secondsSinceMidnight, coorindate.x, coorindate.y];
+                    if (touch == [touches.allObjects lastObject]) {
+                        [touchString appendString:@"\n"];
+                    }
+                    else {
+                        [touchString appendString:@",\n"];
+                    }
+                    [writeString appendString:touchString];
                 }
-                else {
-                    [touchString appendString:@",\n"];
-                }
-                [writeString appendString:touchString];
+                [writeString appendString:@"\t\t]\n"];
+                [writeString appendString:@"\t},\n"];
                 
+                NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:[self filePathForDate:[NSDate date]]];
+                [fileHandle seekToEndOfFile];
+                [fileHandle writeData:[writeString dataUsingEncoding:NSUTF8StringEncoding]];
+                [fileHandle closeFile];
             }
-            [writeString appendString:@"\t\t]\n"];
-            [writeString appendString:@"\t},\n"];
-            
-            NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:[self filePathForDate:[NSDate date]]];
-            [fileHandle seekToEndOfFile];
-            [fileHandle writeData:[writeString dataUsingEncoding:NSUTF8StringEncoding]];
-            [fileHandle closeFile];
-        }
-    });
+        });
+    }
+}
+
+- (void)reachabilityChanged {
+    networkStatus = reachability.currentReachabilityStatus;
+    [self uploadClosedFiles];
 }
 
 @end

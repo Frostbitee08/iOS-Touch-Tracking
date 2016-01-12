@@ -15,6 +15,8 @@ extern NSString *const settingsFilePath;
 + (instancetype)sharedInstance;
 
 - (BOOL)isTrackingEnabled;
+- (BOOL)isCellularUploadEnabled;
+- (BOOL)isUploadEnabled;
 
 - (void)reloadSettings;
 
