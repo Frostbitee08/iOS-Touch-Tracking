@@ -215,3 +215,4 @@ Pods
 *.deb
 obj
 _
+.theos
