@@ -15,7 +15,7 @@ NSString *const kTrackingEnabled = @"TrackingEnabled";
 - (instancetype)init {
     self = [super init];
     if (self) {
-        settings = [NSDictionary dictionary];
+        settings = [[NSDictionary dictionary] retain];
         [self reloadSettings];
     }
     return self;
@@ -33,17 +33,13 @@ NSString *const kTrackingEnabled = @"TrackingEnabled";
 //MARK: Accessors
 
 - (BOOL)isTrackingEnabled {
-  //Accessing settings after initial call crashes without reloading
-  //Settings is not nil, or NULL in this occurnace
-  //No idea why it is happening
-  [self reloadSettings];
   return [settings[kTrackingEnabled] boolValue];
 }
 
 //MARK: Actions
 
 - (void)reloadSettings {
-    settings = [NSDictionary dictionaryWithContentsOfFile:settingsFilePath];
+    settings = [[NSDictionary dictionaryWithContentsOfFile:settingsFilePath] retain];
 }
 
 @end
