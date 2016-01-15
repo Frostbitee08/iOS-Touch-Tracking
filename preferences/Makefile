@@ -1,7 +1,7 @@
 include theos/makefiles/common.mk
 
 BUNDLE_NAME = TTSettings
-TTSettings_FILES = TTSettings.mm TTSettingsManager.m 
+TTSettings_FILES = TTSettings.mm TTSettingLogList.mm TTSettingLog.mm TTSettingsManager.m 
 TTSettings_INSTALL_PATH = /Library/PreferenceBundles
 TTSettings_FRAMEWORKS = UIKit
 TTSettings_PRIVATE_FRAMEWORKS = Preferences

@@ -1,7 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
+<?xml version="1.0" encoding="UTF-8"?> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"> <plist version="1.0"> <dict>
 	<key>items</key>
 	<array>
 		<dict>
@@ -14,7 +11,6 @@
 		<dict>
 			<key>cell</key> 		<string>PSGroupCell</string>
 			<key>label</key> 		<string>Netwrok</string>
-            <key>footerText</key> 	<string>These are network settings</string>
 		</dict>
 		<dict>
 			<key>cell</key>		<string>PSSwitchCell</string>
@@ -37,7 +33,20 @@
 			<key>key</key>		<string>DeleteLogsEnabled</string>
 			<key>label</key>	<string>Delete Logs After Uplaod</string>
 		</dict>
- 
+		<dict>
+			<key>cell</key> 		<string>PSGroupCell</string>
+			<key>label</key> 		<string>Logs</string>
+		</dict>
+                <dict>
+                        <key>cell</key>         <string>PSLinkCell</string>
+                        <key>label</key>        <string>View Current Log</string>
+                        <key>detail</key>       <string>TTSettingLogController</string>
+                </dict>
+                <dict>
+                        <key>cell</key>         <string>PSLinkCell</string>
+                        <key>label</key>        <string>View Past Logs</string>
+                        <key>detail</key>       <string>TTSettingLogListController</string>
+                </dict>
         </array>
 	<key>title</key>
 	<string>iOS Touch Tracking</string>

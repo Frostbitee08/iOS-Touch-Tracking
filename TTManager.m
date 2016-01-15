@@ -2,6 +2,7 @@
 #import "Reachability.h"
 #import "preferences/TTSettingsManager.h"
 
+
 NSString *const kTouchTime  = @"t";
 NSString *const kTouchPoint = @"p";
 

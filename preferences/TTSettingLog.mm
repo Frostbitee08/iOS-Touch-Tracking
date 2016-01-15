@@ -1,0 +1,18 @@
+@interface PSListController : UIViewController {
+    NSArray *_specifiers;
+}
+- (id)loadSpecifiersFromPlistName:(id)arg1 target:(id)arg2;
+- (id)loadSpecifiersFromPlistName:(id)arg1 target:(id)arg2 bundle:(id)arg3;
+@end
+
+@interface PSSpecifier : NSObject
+@property (nonatomic, retain) NSString *name;
+@property (nonatomic, retain) NSDictionary *properties;
+@end
+
+@interface TTSettingLogController : PSListController
+@end
+
+@implementation TTSettingLogController
+
+@end
