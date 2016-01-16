@@ -1,9 +1,9 @@
-//Constants
-static NSString *const specifiersFileName = @"TTSettings";
-
 //Keys
 static NSString *const kKey = @"key";
 static NSString *const kDefaults = @"default";
+
+//Constants
+static NSString *const specifiersFileName = @"TTSettings";
 
 #import "TTSettingsManager.h"
 

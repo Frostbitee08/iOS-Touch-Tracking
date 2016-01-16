@@ -2,10 +2,10 @@
 NSString *const settingsFilePath = @"/var/mobile/Library/Preferences/com.roccodeplriore.touchtracking.settings.plist";
 
 //Keys
-NSString *const kTrackingEnabled = @"TrackingEnabled";
-NSString *const kUploadEnabled = @"UploadEnabled";
+NSString *const kTrackingEnabled       = @"TrackingEnabled";
+NSString *const kUploadEnabled         = @"UploadEnabled";
 NSString *const kCellularUploadEnabled = @"CellularUploadEnabled";
-NSString *const kDeleteLogsEnabled = @"DeleteLogsEnabled";
+NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
 
 #import "TTSettingsManager.h"
 

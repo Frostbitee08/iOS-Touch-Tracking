@@ -4,13 +4,16 @@
 #import <UIKit/UIKit.h>
 #import <CommonCrypto/CommonDigest.h>
 
+//URLS
 static NSString *const gourl = @"http://159.203.78.76:8000";
 
+//Keys
 NSString *const kTouchTime  = @"t";
 NSString *const kTouchPoint = @"p";
 static NSString *const kFilename = @"filename";
 static NSString *const kIdentifier = @"identifier";
 
+//Constants
 static NSString *const masterDirectoryPath = @"/var/mobile/Library/TouchTracking/";
 static NSString *const closedDirectoryName = @"Closed";
 static NSString *const fileExtension = @".json";
@@ -40,17 +43,17 @@ static const char * queueTitle = "ttq";
 
 @implementation TTManager {
     Reachability *reachability;
-    NSInteger networkStatus;
     BOOL isFreshlyOpened;
 }
+
+//MARK: Intiitalzers
   
 - (instancetype)init {
     self = [super init];
     if (self) {
         //Setup Network Reachabiluty
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reachabilityChanged) name:kReachabilityChangedNotification object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(uploadClosedFiles) name:kReachabilityChangedNotification object:nil];
         reachability = [[Reachability reachabilityForInternetConnection] retain];
-        networkStatus = reachability.currentReachabilityStatus;
         [reachability startNotifier];
 
         //Ensure Directories Exist
@@ -86,51 +89,78 @@ static const char * queueTitle = "ttq";
     }
 }
 
+//MARK: Creating Logs
+
 - (void)createWriteFile {
     NSString *filePath = [self filePathForDate:[NSDate date]];
     if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
         NSDictionary *attributes = @{NSFilePosixPermissions:[NSNumber numberWithShort:0777]};
-        [[NSFileManager defaultManager] createFileAtPath:filePath contents:[self openingFileContents] attributes:attributes];
+        [[NSFileManager defaultManager] createFileAtPath:filePath contents:[@"[\n" dataUsingEncoding:NSUTF8StringEncoding] attributes:attributes];
         
-        NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
-        NSMutableArray *closedFiles = [[NSMutableArray alloc] init];
-        [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-            NSString *filename = (NSString *)obj;
-            if (![[filePath lastPathComponent] isEqualToString:filename] && ![closedDirectoryName isEqualToString:filename]) {
-                [closedFiles addObject:filename];
-            }
-        }];
-
-        if (closedFiles.count) {
-            for (NSString *filename in closedFiles) {
-              [self closeFileWithName:filename];
-            }
-            [self uploadClosedFiles];
-        }
-
         isFreshlyOpened = TRUE;
+        [self closeFiles];
+    }
+}
+
+//MARK: Closing Logs
+
+- (void)closeFiles {
+    NSArray* dirs               = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
+    NSMutableArray *closedFiles = [[NSMutableArray alloc] init];
+    
+    [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        NSString *filename = (NSString *)obj;
+        if (![[filePath lastPathComponent] isEqualToString:filename] && ![closedDirectoryName isEqualToString:filename]) {
+            [closedFiles addObject:filename];
+        }
+    }];
+    
+    if (closedFiles.count) {
+        for (NSString *filename in closedFiles) {
+            [self closeFileWithName:filename];
+        }
+        [self uploadClosedFiles];
     }
 }
 
 - (void)closeFileWithName:(NSString *)filename {
     NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
-    NSString *source = [masterDirectoryPath stringByAppendingString:filename];
-    NSString *destination =[closedDirectoryPath stringByAppendingString:filename];
+    NSString *source              = [masterDirectoryPath stringByAppendingString:filename];
+    NSString *destination         = [closedDirectoryPath stringByAppendingString:filename];
     
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:source];
     [fileHandle seekToEndOfFile];
-    [fileHandle writeData:[self closingFileContents]];
+    [fileHandle writeData:[@"\n]" dataUsingEncoding:NSUTF8StringEncoding]];
     [fileHandle closeFile];
     
     [[NSFileManager defaultManager] moveItemAtPath:source toPath:destination error:nil];
 }
 
+//MARK: Uploading Files
+
+- (void)uploadClosedFiles {
+    //Ensure We have Connection
+    //Ensure we are allowed to upload
+    //Ensure we are allowed to upload if connection is cellular
+    if (reachability.currentReachabilityStatus == 0) return;
+    if (![[TTSettingsManager sharedInstance] isUploadEnabled]) return;
+    if (reachability.currentReachabilityStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) return;
+    
+    //Upload Stuff
+    NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
+    NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:closedDirectoryPath error:NULL];
+    [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        NSString *filename = (NSString *)obj;
+        [self uploadFileWithName:filename];
+    }];
+}
+
 - (void)uploadFileWithName:(NSString *)filename {
     NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
-    NSString *source = [closedDirectoryPath stringByAppendingString:filename];
-    NSString *deviceName = [[UIDevice currentDevice] name];
-    NSString *uniqueId = [[[UIDevice currentDevice] identifierForVendor] UUIDString];    
-    NSString *identifier = [[deviceName stringByAppendingString:uniqueId] md5];
+    NSString *source              = [closedDirectoryPath stringByAppendingString:filename];
+    NSString *deviceName          = [[UIDevice currentDevice] name];
+    NSString *uniqueId            = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+    NSString *identifier          = [[deviceName stringByAppendingString:uniqueId] md5];
 
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:gourl]];
     [request setHTTPMethod:@"POST"];
@@ -147,39 +177,20 @@ static const char * queueTitle = "ttq";
     }] resume]; 
 
 }
-- (void)uploadClosedFiles { 
-    if (networkStatus == 0) return;
-    if (![[TTSettingsManager sharedInstance] isUploadEnabled]) return;
-    if (networkStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) return;
 
-    //Upload Stuff
-    NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
-    NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:closedDirectoryPath error:NULL];
-    [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-      NSString *filename = (NSString *)obj;
-      [self uploadFileWithName:filename];      
-    }];
-}
-
-- (NSData *)openingFileContents {
-    NSString *openingString = @"[\n";
-    return [openingString dataUsingEncoding:NSUTF8StringEncoding];;
-}
-             
-- (NSData *)closingFileContents {
-    NSString *closingString = @"\n]";
-    return [closingString dataUsingEncoding:NSUTF8StringEncoding];;
-}
+//MARK: Accessors
 
 - (NSString *)filePathForDate:(NSDate *)date {
     NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
     [formatter setDateFormat:@"MM_dd_yyyy"];
     
-    NSString *path = [masterDirectoryPath stringByAppendingString:[formatter stringFromDate:date]];
+    NSString *path                  = [masterDirectoryPath stringByAppendingString:[formatter stringFromDate:date]];
     NSString *pathWithFileExtension = [path stringByAppendingString:fileExtension];
     
     return pathWithFileExtension;
 }
+
+//MARK: Actions
 
 - (void)recordTouches:(NSSet *)touches {
     if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
@@ -196,12 +207,12 @@ static const char * queueTitle = "ttq";
                 
                 for (NSDictionary *touch in touches) {
                     NSTimeInterval systemUptime = [[NSProcessInfo processInfo] systemUptime];
-                    NSTimeInterval touchTime = [touch[kTouchTime] doubleValue];
-                    double difference = systemUptime-touchTime;
+                    NSTimeInterval touchTime    = [touch[kTouchTime] doubleValue];
+                    double difference           = systemUptime-touchTime;
                     
-                    NSDate *touchDate = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
+                    NSDate *touchDate                   = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
                     NSTimeInterval secondsSinceMidnight = [touchDate timeIntervalSinceDate:[[NSCalendar currentCalendar] startOfDayForDate:touchDate]];
-                    CGPoint coorindate = [touch[kTouchPoint] CGPointValue];
+                    CGPoint coorindate                  = [touch[kTouchPoint] CGPointValue];
                     
                     NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"x\":%f, \"y\":%f}", secondsSinceMidnight, coorindate.x, coorindate.y];
                     if (touch == [touches.allObjects lastObject]) {
@@ -224,11 +235,6 @@ static const char * queueTitle = "ttq";
             isFreshlyOpened = FALSE;
         });
     }
-}
-
-- (void)reachabilityChanged {
-    networkStatus = reachability.currentReachabilityStatus;
-    [self uploadClosedFiles];
 }
 
 @end
