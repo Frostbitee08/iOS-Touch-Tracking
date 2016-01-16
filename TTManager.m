@@ -1,19 +1,47 @@
 #import "TTManager.h"
 #import "Reachability.h"
 #import "preferences/TTSettingsManager.h"
+#import <UIKit/UIKit.h>
+#import <CommonCrypto/CommonDigest.h>
 
+static NSString *const gourl = @"http://159.203.78.76:8000";
 
 NSString *const kTouchTime  = @"t";
 NSString *const kTouchPoint = @"p";
+static NSString *const kFilename = @"filename";
+static NSString *const kIdentifier = @"identifier";
 
 static NSString *const masterDirectoryPath = @"/var/mobile/Library/TouchTracking/";
 static NSString *const closedDirectoryName = @"Closed";
 static NSString *const fileExtension = @".json";
 static const char * queueTitle = "ttq";
 
+@interface NSString (MD5)
+- (NSString *)md5;
+@end
+
+@implementation NSString (MD5)
+
+- (NSString *)md5 {
+    const char *cstr = [self UTF8String];
+    unsigned char result[16];
+    CC_MD5(cstr, strlen(cstr), result);
+
+    return [NSString stringWithFormat:
+        @"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+        result[0], result[1], result[2], result[3], 
+        result[4], result[5], result[6], result[7],
+        result[8], result[9], result[10], result[11],
+        result[12], result[13], result[14], result[15]
+    ];  
+}
+
+@end
+
 @implementation TTManager {
     Reachability *reachability;
     NSInteger networkStatus;
+    BOOL isFreshlyOpened;
 }
   
 - (instancetype)init {
@@ -31,6 +59,7 @@ static const char * queueTitle = "ttq";
         
         //Ensure there is a file to write to
         [self createWriteFile];
+        [self uploadClosedFiles];
     }
     return self;
 }
@@ -78,6 +107,8 @@ static const char * queueTitle = "ttq";
             }
             [self uploadClosedFiles];
         }
+
+        isFreshlyOpened = TRUE;
     }
 }
 
@@ -94,13 +125,40 @@ static const char * queueTitle = "ttq";
     [[NSFileManager defaultManager] moveItemAtPath:source toPath:destination error:nil];
 }
 
-- (void)uploadClosedFiles {
-    if (networkStatus == 0) NSLog(@"TT Upload Failed: No network"); return;
-    if (![[TTSettingsManager sharedInstance] isUploadEnabled]) NSLog(@"TT Upload Failed: Boo Network"); return;
-    if (networkStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) NSLog(@"TT Upload Failed: No Cell Network"); return;
+- (void)uploadFileWithName:(NSString *)filename {
+    NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
+    NSString *source = [closedDirectoryPath stringByAppendingString:filename];
+    NSString *deviceName = [[UIDevice currentDevice] name];
+    NSString *uniqueId = [[[UIDevice currentDevice] identifierForVendor] UUIDString];    
+    NSString *identifier = [[deviceName stringByAppendingString:uniqueId] md5];
 
-    NSLog(@"TT Uploading Stuff");
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:gourl]];
+    [request setHTTPMethod:@"POST"];
+    [request addValue:identifier forHTTPHeaderField:kIdentifier];
+    [request addValue:filename forHTTPHeaderField:kFilename];
+    [request setHTTPBody:[NSData dataWithContentsOfFile:source]];
+    
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {NSString* newStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        NSLog(@"TT Uploaded File %@ RESPONSE: %@", filename, newStr);
+        
+        if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
+            [[NSFileManager defaultManager] removeItemAtPath:source error:&error];
+        }
+    }] resume]; 
+
+}
+- (void)uploadClosedFiles { 
+    if (networkStatus == 0) return;
+    if (![[TTSettingsManager sharedInstance] isUploadEnabled]) return;
+    if (networkStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) return;
+
     //Upload Stuff
+    NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
+    NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:closedDirectoryPath error:NULL];
+    [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+      NSString *filename = (NSString *)obj;
+      [self uploadFileWithName:filename];      
+    }];
 }
 
 - (NSData *)openingFileContents {
@@ -109,7 +167,7 @@ static const char * queueTitle = "ttq";
 }
              
 - (NSData *)closingFileContents {
-    NSString *closingString = @"]";
+    NSString *closingString = @"\n]";
     return [closingString dataUsingEncoding:NSUTF8StringEncoding];;
 }
 
@@ -124,7 +182,6 @@ static const char * queueTitle = "ttq";
 }
 
 - (void)recordTouches:(NSSet *)touches {
-
     if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
         dispatch_queue_t queue = dispatch_queue_create(queueTitle, 0);
         dispatch_async(queue, ^{
@@ -132,6 +189,9 @@ static const char * queueTitle = "ttq";
                 [self createWriteFile];
                 
                 NSMutableString *writeString = [[NSMutableString alloc] init];
+                
+                if (!isFreshlyOpened) [writeString appendString:@",\n"];
+                else                  [writeString appendString:@"\n"];
                 [writeString appendString:@"\t{\n"];
                 [writeString appendString:@"\t\t\"T\" : [\n"];
                 
@@ -154,13 +214,15 @@ static const char * queueTitle = "ttq";
                     [writeString appendString:touchString];
                 }
                 [writeString appendString:@"\t\t]\n"];
-                [writeString appendString:@"\t},\n"];
+                [writeString appendString:@"\t}"];
                 
                 NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:[self filePathForDate:[NSDate date]]];
                 [fileHandle seekToEndOfFile];
                 [fileHandle writeData:[writeString dataUsingEncoding:NSUTF8StringEncoding]];
                 [fileHandle closeFile];
             }
+
+            isFreshlyOpened = FALSE;
         });
     }
 }
