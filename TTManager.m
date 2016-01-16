@@ -8,16 +8,16 @@
 static NSString *const gourl = @"http://159.203.78.76:8000";
 
 //Keys
-NSString *const kTouchTime  = @"t";
-NSString *const kTouchPoint = @"p";
-static NSString *const kFilename = @"filename";
+NSString *const kTouchTime         = @"t";
+NSString *const kTouchPoint        = @"p";
+static NSString *const kFilename   = @"filename";
 static NSString *const kIdentifier = @"identifier";
 
 //Constants
 static NSString *const masterDirectoryPath = @"/var/mobile/Library/TouchTracking/";
 static NSString *const closedDirectoryName = @"Closed";
-static NSString *const fileExtension = @".json";
-static const char * queueTitle = "ttq";
+static NSString *const fileExtension       = @".json";
+static const char * queueTitle             = "ttq";
 
 @interface NSString (MD5)
 - (NSString *)md5;
@@ -105,7 +105,8 @@ static const char * queueTitle = "ttq";
 //MARK: Closing Logs
 
 - (void)closeFiles {
-    NSArray* dirs               = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
+    NSArray *dirs               = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
+    NSString *filePath          = [self filePathForDate:[NSDate date]];
     NSMutableArray *closedFiles = [[NSMutableArray alloc] init];
     
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {

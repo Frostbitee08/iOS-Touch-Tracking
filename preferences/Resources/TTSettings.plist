@@ -31,7 +31,7 @@
 			<key>default</key>	<true/>	
 			<key>defaults</key>	<string>com.roccodelpriore.touchtracking.settings</string>
 			<key>key</key>		<string>DeleteLogsEnabled</string>
-			<key>label</key>	<string>Delete Logs After Uplaod</string>
+			<key>label</key>	<string>Delete Logs After Upload</string>
 		</dict>
 		<dict>
 			<key>cell</key> 		<string>PSGroupCell</string>
