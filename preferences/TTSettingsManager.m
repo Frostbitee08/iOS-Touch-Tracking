@@ -34,8 +34,8 @@ NSString *const kDeleteLogsEnabled = @"DeleteLogsEnabled";
 }
 
 - (void)dealloc {
-  [super dealloc];
   [settings release];
+  [super dealloc];
 }
 
 //MARK: Accessors

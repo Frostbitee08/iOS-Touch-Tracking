@@ -74,8 +74,8 @@ static const char * queueTitle = "ttq";
 }
 
 - (void)dealloc {
-  [super dealloc];
   [reachability release];
+  [super dealloc];
 }
 
 - (void)createDirectoryAtPath:(NSString *)path {
@@ -184,10 +184,9 @@ static const char * queueTitle = "ttq";
 - (void)recordTouches:(NSSet *)touches {
     if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
         dispatch_queue_t queue = dispatch_queue_create(queueTitle, 0);
-        dispatch_async(queue, ^{
-            if (touches.allObjects.count) {
+        dispatch_barrier_async(queue, ^{
+            if (touches.count) {
                 [self createWriteFile];
-                
                 NSMutableString *writeString = [[NSMutableString alloc] init];
                 
                 if (!isFreshlyOpened) [writeString appendString:@",\n"];
@@ -195,7 +194,7 @@ static const char * queueTitle = "ttq";
                 [writeString appendString:@"\t{\n"];
                 [writeString appendString:@"\t\t\"T\" : [\n"];
                 
-                for (NSDictionary *touch in touches.allObjects) {
+                for (NSDictionary *touch in touches) {
                     NSTimeInterval systemUptime = [[NSProcessInfo processInfo] systemUptime];
                     NSTimeInterval touchTime = [touch[kTouchTime] doubleValue];
                     double difference = systemUptime-touchTime;
