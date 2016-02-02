@@ -17,7 +17,8 @@ static NSString *const kIdentifier = @"identifier";
 static NSString *const masterDirectoryPath = @"/var/mobile/Library/TouchTracking/";
 static NSString *const closedDirectoryName = @"Closed";
 static NSString *const fileExtension       = @".json";
-static const char * queueTitle             = "ttq";
+static const char * writeQueueTitle        = "wttq";
+static const char * uploadQueueTitle       = "uttq";
 
 @interface NSString (MD5)
 - (NSString *)md5;
@@ -42,6 +43,8 @@ static const char * queueTitle             = "ttq";
 @end
 
 @implementation TTManager {
+    dispatch_queue_t writeQueue;
+    dispatch_queue_t uploadQueue;
     Reachability *reachability;
     BOOL isFreshlyOpened;
 }
@@ -51,13 +54,16 @@ static const char * queueTitle             = "ttq";
 - (instancetype)init {
     self = [super init];
     if (self) {
+        //Initialize Queues
+        writeQueue = dispatch_queue_create(writeQueueTitle, 0);
+        uploadQueue = dispatch_queue_create(uploadQueueTitle, 0);
+        
         //Setup Network Reachabiluty
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(uploadClosedFiles) name:kReachabilityChangedNotification object:nil];
         reachability = [[Reachability reachabilityForInternetConnection] retain];
         [reachability startNotifier];
 
-        //Ensure Directories Exist
-        [self createDirectoryAtPath:masterDirectoryPath];
+        //Ensure Directories Exist [self createDirectoryAtPath:masterDirectoryPath];
         [self createDirectoryAtPath:[masterDirectoryPath stringByAppendingString:closedDirectoryName]];
         
         //Ensure there is a file to write to
@@ -107,7 +113,7 @@ static const char * queueTitle             = "ttq";
 - (void)closeFiles {
     NSArray *dirs               = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
     NSString *filePath          = [self filePathForDate:[NSDate date]];
-    NSMutableArray *closedFiles = [[NSMutableArray alloc] init];
+    NSMutableArray *closedFiles = [[[NSMutableArray alloc] init] retain];
     
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         NSString *filename = (NSString *)obj;
@@ -148,35 +154,39 @@ static const char * queueTitle             = "ttq";
     if (reachability.currentReachabilityStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) return;
     
     //Upload Stuff
+    NSMutableArray *files = [NSMutableArray array];
     NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
     NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:closedDirectoryPath error:NULL];
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        NSString *filename = (NSString *)obj;
-        [self uploadFileWithName:filename];
+        [files addObject:obj];
     }];
+    for (NSString *filename in files) {
+        [self uploadFileWithName:filename];
+    }
 }
 
 - (void)uploadFileWithName:(NSString *)filename {
-    NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
-    NSString *source              = [closedDirectoryPath stringByAppendingString:filename];
-    NSString *deviceName          = [[UIDevice currentDevice] name];
-    NSString *uniqueId            = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
-    NSString *identifier          = [[deviceName stringByAppendingString:uniqueId] md5];
-
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:gourl]];
-    [request setHTTPMethod:@"POST"];
-    [request addValue:identifier forHTTPHeaderField:kIdentifier];
-    [request addValue:filename forHTTPHeaderField:kFilename];
-    [request setHTTPBody:[NSData dataWithContentsOfFile:source]];
-    
-    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {NSString* newStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-        NSLog(@"TT Uploaded File %@ RESPONSE: %@", filename, newStr);
+    dispatch_async(uploadQueue, ^(void) {
+        NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
+        NSString *source              = [closedDirectoryPath stringByAppendingString:filename];
+        NSString *deviceName          = [[UIDevice currentDevice] name];
+        NSString *uniqueId            = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+        NSString *identifier          = [[deviceName stringByAppendingString:uniqueId] md5];
         
-        if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
-            [[NSFileManager defaultManager] removeItemAtPath:source error:&error];
-        }
-    }] resume]; 
-
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:gourl]];
+        [request setHTTPMethod:@"POST"];
+        [request addValue:identifier forHTTPHeaderField:kIdentifier];
+        [request addValue:filename forHTTPHeaderField:kFilename];
+        [request setHTTPBody:[NSData dataWithContentsOfFile:source]];
+        
+        [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {NSString* newStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            NSLog(@"TT Uploaded File %@ RESPONSE: %@", filename, newStr);
+            
+            if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
+                [[NSFileManager defaultManager] removeItemAtPath:source error:&error];
+            }
+        }] resume];
+    });
 }
 
 //MARK: Accessors
@@ -193,10 +203,10 @@ static const char * queueTitle             = "ttq";
 
 //MARK: Actions
 
-- (void)recordTouches:(NSSet *)touches {
+- (void)recordTouches:(NSSet *)incomingTouches {
+    NSSet *touches = [incomingTouches copy];
     if ([[TTSettingsManager sharedInstance] isTrackingEnabled]) {
-        dispatch_queue_t queue = dispatch_queue_create(queueTitle, 0);
-        dispatch_barrier_async(queue, ^{
+        dispatch_barrier_async(writeQueue, ^{
             if (touches.count) {
                 [self createWriteFile];
                 NSMutableString *writeString = [[NSMutableString alloc] init];

@@ -25,7 +25,7 @@
     }
   }
 
-  NSMutableSet *touches = [[NSMutableSet alloc] init];
+  NSMutableSet *touches = [[[NSMutableSet alloc] init] retain];
   [self setTouches:touches];
 }
 

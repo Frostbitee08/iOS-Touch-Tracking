@@ -14,4 +14,10 @@
 @end
 
 @implementation TTSettingLogListController 
+
+- (void)viewDidLoad {
+  [super viewDidLoad];
+  NSLog(@"TTSettingLogList.mm");
+}
+
 @end

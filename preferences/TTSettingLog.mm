@@ -10,9 +10,42 @@
 @property (nonatomic, retain) NSDictionary *properties;
 @end
 
-@interface TTSettingLogController : PSListController
+@interface TTSettingLogController : PSListController {
+  NSString *fileContents;
+}
 @end
 
 @implementation TTSettingLogController
 
+- (id)init {
+  self = [super init];
+  if (self) {
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    [formatter setDateFormat:@"MM_dd_yyyy"];
+
+    NSString *path = [@"/var/mobile/Library/TouchTracking/" stringByAppendingString:[formatter stringFromDate:[NSDate date]]];
+    path = [path stringByAppendingString:@".json"];
+
+    NSError *error;
+    fileContents = [[[NSString alloc] initWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error] retain];
+  }
+  return self;
+}
+
+- (void)viewDidLoad {
+  [super viewDidLoad];
+  [self setTitle:@"Today"];
+
+  CGFloat y = [UIApplication sharedApplication].statusBarFrame.size.height + 44;
+  CGFloat height = [[UIScreen mainScreen] bounds].size.height - y;
+  CGFloat width = [[UIScreen mainScreen] bounds].size.width;
+
+  UITextView *textView = [[UITextView alloc] initWithFrame:CGRectMake(0,y,width,height)];
+  [textView setText:fileContents];
+  [self.view addSubview:textView];
+  [self.view bringSubviewToFront:textView];
+}
+
 @end
+
+// vim:ft=objc
