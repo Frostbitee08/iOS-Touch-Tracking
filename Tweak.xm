@@ -41,6 +41,12 @@
   return returnValue;
 }
 
+- (void)dealloc {
+  NSMutableSet *touches = [self touches];
+  [touches release];
+  %orig;
+}
+
 %new
 - (void)setSbWindow:(UIWindow *)object {
     objc_setAssociatedObject(self, @selector(sbWindow), object, OBJC_ASSOCIATION_RETAIN_NONATOMIC);  
