@@ -9,16 +9,17 @@ NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
 
 #import "TTSettingsManager.h"
 
-@implementation TTSettingsManager {
-    NSDictionary *settings;
-}
+@interface TTSettingsManager ()
+@property (atomic, retain) NSDictionary *settings;
+@end
+
+@implementation TTSettingsManager
 
 //MARK: Intializers
 
 - (instancetype)init {
     self = [super init];
     if (self) {
-        settings = [[NSDictionary dictionary] retain];
         [self reloadSettings];
     }
     return self;
@@ -34,32 +35,32 @@ NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
 }
 
 - (void)dealloc {
-  [settings release];
-  [super dealloc];
+    self.settings = nil;
+    [super dealloc];
 }
 
 //MARK: Accessors
 
 - (BOOL)isTrackingEnabled {
-  return [settings[kTrackingEnabled] boolValue];
+  return [self.settings[kTrackingEnabled] boolValue];
 }
 
 - (BOOL)isUploadEnabled {
-  return [settings[kUploadEnabled] boolValue];
+  return [self.settings[kUploadEnabled] boolValue];
 }
 
 - (BOOL)isCellularUploadEnabled {
-  return [settings[kCellularUploadEnabled] boolValue];
+  return [self.settings[kCellularUploadEnabled] boolValue];
 }
 
 - (BOOL)isDeleteLogsEnabled {
-  return [settings[kDeleteLogsEnabled] boolValue];
+  return [self.settings[kDeleteLogsEnabled] boolValue];
 }
 
 //MARK: Actions
 
 - (void)reloadSettings {
-    settings = [[NSDictionary dictionaryWithContentsOfFile:settingsFilePath] retain];
+    self.settings = [NSDictionary dictionaryWithContentsOfFile:settingsFilePath];
 }
 
 @end

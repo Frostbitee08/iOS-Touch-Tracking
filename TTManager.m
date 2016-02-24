@@ -67,8 +67,10 @@ static const char * uploadQueueTitle       = "uttq";
         [self createDirectoryAtPath:[masterDirectoryPath stringByAppendingString:closedDirectoryName]];
         
         //Ensure there is a file to write to
-        [self createWriteFile];
         [self uploadClosedFiles];
+        dispatch_barrier_async(writeQueue, ^{
+            [self createWriteFile];
+        });
     }
     return self;
 }
@@ -83,14 +85,16 @@ static const char * uploadQueueTitle       = "uttq";
 }
 
 - (void)dealloc {
-  [reachability release];
-  [super dealloc];
+    if (0) {
+        [reachability release];
+        [super dealloc];
+    }
 }
 
 - (void)createDirectoryAtPath:(NSString *)path {
-    BOOL isDir;
+    BOOL isDir = NO;
     if (!([[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir] && isDir)) {
-        NSError *error;
+        NSError *error = NULL;
         [[NSFileManager defaultManager] createDirectoryAtPath:path withIntermediateDirectories:NO attributes:nil error:&error];
     }
 }
@@ -113,7 +117,7 @@ static const char * uploadQueueTitle       = "uttq";
 - (void)closeFiles {
     NSArray *dirs               = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:masterDirectoryPath error:NULL];
     NSString *filePath          = [self filePathForDate:[NSDate date]];
-    NSMutableArray *closedFiles = [[[NSMutableArray alloc] init] retain];
+    NSMutableArray *closedFiles = [NSMutableArray array];
     
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         NSString *filename = (NSString *)obj;
@@ -154,38 +158,48 @@ static const char * uploadQueueTitle       = "uttq";
     if (reachability.currentReachabilityStatus == 2 && ![[TTSettingsManager sharedInstance] isCellularUploadEnabled]) return;
     
     //Upload Stuff
-    NSMutableArray *files = [NSMutableArray array];
     NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
     NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:closedDirectoryPath error:NULL];
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        [files addObject:obj];
+        [self uploadFileWithName:obj];
     }];
-    for (NSString *filename in files) {
-        [self uploadFileWithName:filename];
-    }
 }
 
-- (void)uploadFileWithName:(NSString *)filename {
+- (void)uploadFileWithName:(NSString *)incomingFilename {
+    NSString *filename = [incomingFilename copy];
     dispatch_async(uploadQueue, ^(void) {
         NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
         NSString *source              = [closedDirectoryPath stringByAppendingString:filename];
         NSString *deviceName          = [[UIDevice currentDevice] name];
         NSString *uniqueId            = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
-        NSString *identifier          = [[deviceName stringByAppendingString:uniqueId] md5];
         
+        if (deviceName == nil || uniqueId == nil) {
+          [filename release];
+          return;
+        }
+
+        NSString *identifier          = [[deviceName stringByAppendingString:uniqueId] md5];
+        NSInputStream *input          = [[NSInputStream alloc] initWithFileAtPath:source];
+
         NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:gourl]];
         [request setHTTPMethod:@"POST"];
         [request addValue:identifier forHTTPHeaderField:kIdentifier];
         [request addValue:filename forHTTPHeaderField:kFilename];
-        [request setHTTPBody:[NSData dataWithContentsOfFile:source]];
+        [request setHTTPBodyStream:input];
+        //[request setHTTPBody:[NSData dataWithContentsOfFile:source]];
         
-        [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {NSString* newStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+            NSString* newStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             NSLog(@"TT Uploaded File %@ RESPONSE: %@", filename, newStr);
             
-            if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
-                [[NSFileManager defaultManager] removeItemAtPath:source error:&error];
-            }
+            dispatch_barrier_async(writeQueue, ^{
+                NSError *error = [[NSError alloc] init];
+                if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
+                  [[NSFileManager defaultManager] removeItemAtPath:source error:&error];
+                }
+            }); 
         }] resume];
+        [filename release];
     });
 }
 
@@ -196,9 +210,10 @@ static const char * uploadQueueTitle       = "uttq";
     [formatter setDateFormat:@"MM_dd_yyyy"];
     
     NSString *path                  = [masterDirectoryPath stringByAppendingString:[formatter stringFromDate:date]];
-    NSString *pathWithFileExtension = [path stringByAppendingString:fileExtension];
+    NSString *pathWithFileExtension = [[path stringByAppendingString:fileExtension] retain];
     
-    return pathWithFileExtension;
+    [formatter release];
+    return [pathWithFileExtension autorelease];
 }
 
 //MARK: Actions
@@ -221,7 +236,7 @@ static const char * uploadQueueTitle       = "uttq";
                     NSTimeInterval touchTime    = [touch[kTouchTime] doubleValue];
                     double difference           = systemUptime-touchTime;
                     
-                    NSDate *touchDate                   = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
+                   NSDate *touchDate                   = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
                     NSTimeInterval secondsSinceMidnight = [touchDate timeIntervalSinceDate:[[NSCalendar currentCalendar] startOfDayForDate:touchDate]];
                     CGPoint coorindate                  = [touch[kTouchPoint] CGPointValue];
                     
@@ -233,6 +248,7 @@ static const char * uploadQueueTitle       = "uttq";
                         [touchString appendString:@",\n"];
                     }
                     [writeString appendString:touchString];
+                    [touchDate release];
                 }
                 [writeString appendString:@"\t\t]\n"];
                 [writeString appendString:@"\t}"];
@@ -241,9 +257,12 @@ static const char * uploadQueueTitle       = "uttq";
                 [fileHandle seekToEndOfFile];
                 [fileHandle writeData:[writeString dataUsingEncoding:NSUTF8StringEncoding]];
                 [fileHandle closeFile];
+                
+                [writeString release];
             }
 
             isFreshlyOpened = FALSE;
+            [touches release];
         });
     }
 }
