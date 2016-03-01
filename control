@@ -3,7 +3,7 @@ Name: TouchTracking
 Depends: mobilesubstrate
 Version: 0.0.1
 Architecture: iphoneos-arm
-Description: An awesome MobileSubstrate tweak!
+Description: Touch Tracking records each touch you make on your iOS device and anonymously uploads that data. Data is used for research and data visualization purposes only. Requires iOS 9 or above.
 Maintainer: Rocco Del Priore
 Author: Rocco Del Priore
 Section: Tweaks
