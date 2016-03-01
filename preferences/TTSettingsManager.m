@@ -20,6 +20,15 @@ NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
 - (instancetype)init {
     self = [super init];
     if (self) {
+        if (![[NSFileManager defaultManager] fileExistsAtPath:settingsFilePath]) {
+            NSMutableDictionary *settings = [NSMutableDictionary dictionary];
+            settings[kTrackingEnabled] = [NSNumber numberWithBool:true];
+            settings[kUploadEnabled] = [NSNumber numberWithBool:true]; 
+            settings[kCellularUploadEnabled] =  [NSNumber numberWithBool:false];
+            settings[kDeleteLogsEnabled] =  [NSNumber numberWithBool:true];            
+            
+            [settings writeToFile:settingsFilePath atomically:YES];
+        }
         [self reloadSettings];
     }
     return self;

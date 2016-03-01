@@ -19,9 +19,7 @@ static NSString *const specifiersFileName = @"TTSettings";
 @property (nonatomic, retain) NSDictionary *properties;
 @end
 
-@interface TTSettingsListController: PSListController {
-    NSString *preferencesPath;
-}
+@interface TTSettingsListController: PSListController 
 @end
 
 @implementation TTSettingsListController
