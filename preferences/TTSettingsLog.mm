@@ -10,12 +10,12 @@
 @property (nonatomic, retain) NSDictionary *properties;
 @end
 
-@interface TTSettingLogController : PSListController {
+@interface TTSettingsLogController : PSListController {
   NSString *fileContents;
 }
 @end
 
-@implementation TTSettingLogController
+@implementation TTSettingsLogController
 
 - (id)init {
   self = [super init];

@@ -1,7 +1,7 @@
 Package: com.roccodelpriore.touchtracking
 Name: TouchTracking
 Depends: mobilesubstrate
-Version: 0.0.1
+Version: 0.2
 Architecture: iphoneos-arm
 Description: Touch Tracking records each touch you make on your iOS device and anonymously uploads that data. Data is used for research and data visualization purposes only. Requires iOS 9 or above.
 Maintainer: Rocco Del Priore
