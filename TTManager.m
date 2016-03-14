@@ -193,9 +193,9 @@ static const char * uploadQueueTitle       = "uttq";
             NSLog(@"TT Uploaded File %@ RESPONSE: %@", filename, newStr);
             
             dispatch_barrier_async(writeQueue, ^{
-                NSError *error = [[NSError alloc] init];
                 if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
-                  [[NSFileManager defaultManager] removeItemAtPath:source error:&error];
+                  NSError *deleteError = [[NSError alloc] init];
+                  [[NSFileManager defaultManager] removeItemAtPath:source error:&deleteError];
                 }
             }); 
         }] resume];

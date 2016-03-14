@@ -7,6 +7,5 @@ extern NSString *const kTouchPoint;
 
 + (instancetype)sharedInstance;
 - (void)recordTouches:(NSSet *)touches;
-- (void)uploadClosedFiles;
 
 @end
