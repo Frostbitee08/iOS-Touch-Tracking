@@ -72,14 +72,6 @@
 			<key>detail</key>
 			<string>TTSettingsLogController</string>
 		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>label</key>
-			<string>View Past Logs</string>
-			<key>detail</key>
-			<string>TTSettingsLogListController</string>
-		</dict>
 	</array>
 	<key>title</key>
 	<string>Touch Tracking</string>
