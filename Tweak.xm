@@ -1,5 +1,6 @@
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
+#import <cmath>
 #import <substrate.h>
 
 #import "TTManager.h"
@@ -11,6 +12,7 @@
 - (NSMutableSet *)touches;
 - (void)customInit;
 - (void)addTouches:(NSSet *)touchObjects;
+- (void)fetchWindow;
 @end
 
 %hook FBExclusiveTouchGestureRecognizer
@@ -66,14 +68,14 @@
 
 %new
 - (void)addTouches:(NSSet *)touchObjects {
+  [self fetchWindow];
   UIWindow *sbWindow = [self sbWindow];
   NSMutableSet *touches = [self touches];
 
   for (UITouch *touch in touchObjects) {
-     CGPoint coorindate = [touch locationInView:sbWindow.rootViewController.view];
-     NSValue *touchPoint = [NSValue valueWithCGPoint:coorindate];
+     CGPoint coordinate = [touch locationInView:sbWindow.rootViewController.view];
+     NSValue *touchPoint = [NSValue valueWithCGPoint:coordinate];
      NSNumber *touchTime = @(touch.timestamp);
-
      [touches addObject:@{kTouchTime:touchTime, kTouchPoint:touchPoint}];
   }
 }
@@ -93,6 +95,21 @@
   [self addTouches:touchObjects];
   [[TTManager sharedInstance] recordTouches:[self touches]];
   %orig;
+}
+
+%new
+- (void)fetchWindow {
+  UIWindow *sbWindow = [self sbWindow];
+  if (sbWindow) {
+    return;
+  }
+  NSArray *windows = [[UIApplication sharedApplication] windows];
+  for (UIWindow *window in windows) {
+      if ([window isKindOfClass:%c(SBHomeScreenWindow)]) {
+        [self setSbWindow:window];
+        break;
+      }
+  }
 }
 
 %end

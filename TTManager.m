@@ -14,11 +14,12 @@ static NSString *const kFilename   = @"filename";
 static NSString *const kIdentifier = @"identifier";
 
 //Constants
-static NSString *const masterDirectoryPath = @"/var/mobile/Library/TouchTracking/";
-static NSString *const closedDirectoryName = @"Closed";
-static NSString *const fileExtension       = @".json";
-static const char * writeQueueTitle        = "wttq";
-static const char * uploadQueueTitle       = "uttq";
+static NSString *const masterDirectoryPath   = @"/var/mobile/Library/TouchTracking/";
+static NSString *const closedDirectoryName   = @"Closed";
+static NSString *const uploadedDirectoryName = @"Uploaded";
+static NSString *const fileExtension         = @".json";
+static const char * writeQueueTitle          = "wttq";
+static const char * uploadQueueTitle         = "uttq";
 
 @interface NSString (MD5)
 - (NSString *)md5;
@@ -65,6 +66,7 @@ static const char * uploadQueueTitle       = "uttq";
 
         //Ensure Directories Exist [self createDirectoryAtPath:masterDirectoryPath];
         [self createDirectoryAtPath:[masterDirectoryPath stringByAppendingString:closedDirectoryName]];
+        [self createDirectoryAtPath:[NSString stringWithFormat:@"%@%@/%@", masterDirectoryPath, closedDirectoryName, uploadedDirectoryName]];
         
         //Ensure there is a file to write to
         [self uploadClosedFiles];
@@ -163,6 +165,20 @@ static const char * uploadQueueTitle       = "uttq";
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         [self uploadFileWithName:obj];
     }];
+    
+    //Delete Old Stuff
+    if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled]) {
+        NSString *uploadedDirectoryPath = [NSString stringWithFormat:@"%@%@/%@/", masterDirectoryPath, closedDirectoryName, uploadedDirectoryName];
+        NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:uploadedDirectoryPath error:NULL];
+        NSMutableArray *delete = [NSMutableArray array];
+        [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+            [delete addObject:[uploadedDirectoryPath stringByAppendingString:obj]];
+        }];
+        for (NSString *path in delete) {
+            NSError *deleteError = [[NSError alloc] init];
+            [[NSFileManager defaultManager] removeItemAtPath:path error:&deleteError];
+        }
+    }
 }
 
 - (void)uploadFileWithName:(NSString *)incomingFilename {
@@ -196,6 +212,12 @@ static const char * uploadQueueTitle       = "uttq";
                 if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {
                   NSError *deleteError = [[NSError alloc] init];
                   [[NSFileManager defaultManager] removeItemAtPath:source error:&deleteError];
+                }
+                else if (!error) {
+                    NSString *uploadedDirectoryPath = [NSString stringWithFormat:@"%@%@/%@/", masterDirectoryPath, closedDirectoryName, uploadedDirectoryName];
+                    NSString *destination           = [uploadedDirectoryPath stringByAppendingString:filename];
+                    
+                    [[NSFileManager defaultManager] moveItemAtPath:source toPath:destination error:nil];
                 }
             }); 
         }] resume];
