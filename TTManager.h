@@ -2,6 +2,7 @@
 
 extern NSString *const kTouchTime;
 extern NSString *const kTouchPoint;
+extern NSString *const kTouchKeyboard;
 
 @interface TTManager : NSObject
 

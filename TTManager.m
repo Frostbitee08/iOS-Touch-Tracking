@@ -10,6 +10,7 @@ static NSString *const gourl = @"http://159.203.78.76:8000";
 //Keys
 NSString *const kTouchTime         = @"t";
 NSString *const kTouchPoint        = @"p";
+NSString *const kTouchKeyboard     = @"kb";
 static NSString *const kFilename   = @"filename";
 static NSString *const kIdentifier = @"identifier";
 
@@ -258,11 +259,12 @@ static const char * uploadQueueTitle         = "uttq";
                     NSTimeInterval touchTime    = [touch[kTouchTime] doubleValue];
                     double difference           = systemUptime-touchTime;
                     
-                   NSDate *touchDate                   = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
+                    NSDate *touchDate                   = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
                     NSTimeInterval secondsSinceMidnight = [touchDate timeIntervalSinceDate:[[NSCalendar currentCalendar] startOfDayForDate:touchDate]];
                     CGPoint coorindate                  = [touch[kTouchPoint] CGPointValue];
+                    BOOL keyboardTouch                  = [touch[kTouchKeyboard] boolValue];
                     
-                    NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"x\":%f, \"y\":%f}", secondsSinceMidnight, coorindate.x, coorindate.y];
+                    NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"kb\":%d, \"x\":%f, \"y\":%f}", secondsSinceMidnight, keyboardTouch, coorindate.x, coorindate.y];
                     if (touch == [touches.allObjects lastObject]) {
                         [touchString appendString:@"\n"];
                     }
