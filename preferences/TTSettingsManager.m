@@ -2,10 +2,11 @@
 NSString *const settingsFilePath = @"/var/mobile/Library/Preferences/com.roccodeplriore.touchtracking.settings.plist";
 
 //Keys
-NSString *const kTrackingEnabled       = @"TrackingEnabled";
-NSString *const kUploadEnabled         = @"UploadEnabled";
-NSString *const kCellularUploadEnabled = @"CellularUploadEnabled";
-NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
+NSString *const kTrackingEnabled         = @"TrackingEnabled";
+NSString *const kUploadEnabled           = @"UploadEnabled";
+NSString *const kCellularUploadEnabled   = @"CellularUploadEnabled";
+NSString *const kKeyboardTrackingEnabled = @"KeyboardTrackingEnabled";
+NSString *const kDeleteLogsEnabled       = @"DeleteLogsEnabled";
 
 #import "TTSettingsManager.h"
 
@@ -26,6 +27,7 @@ NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
             settings[kUploadEnabled] = [NSNumber numberWithBool:true]; 
             settings[kCellularUploadEnabled] =  [NSNumber numberWithBool:false];
             settings[kDeleteLogsEnabled] =  [NSNumber numberWithBool:true];            
+            settings[kKeyboardTrackingEnabled] =  [NSNumber numberWithBool:false];            
             
             [settings writeToFile:settingsFilePath atomically:YES];
         }
@@ -64,6 +66,10 @@ NSString *const kDeleteLogsEnabled     = @"DeleteLogsEnabled";
 
 - (BOOL)isDeleteLogsEnabled {
   return [self.settings[kDeleteLogsEnabled] boolValue];
+}
+
+- (BOOL)isKeyboardTrackingEnabled {
+  return [self.settings[kKeyboardTrackingEnabled] boolValue];
 }
 
 //MARK: Actions

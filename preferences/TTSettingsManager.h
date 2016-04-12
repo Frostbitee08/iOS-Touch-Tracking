@@ -10,6 +10,7 @@ extern NSString *const settingsFilePath;
 - (BOOL)isCellularUploadEnabled;
 - (BOOL)isUploadEnabled;
 - (BOOL)isDeleteLogsEnabled;
+- (BOOL)isKeyboardTrackingEnabled;
 
 - (void)reloadSettings;
 

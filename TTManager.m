@@ -271,8 +271,14 @@ static const char * uploadQueueTitle         = "uttq";
                 NSTimeInterval firstTouch = -1;;
                 for (NSDictionary *touch in sortedTouches) {
                     NSInteger tapCount = [touch[kTapCount] integerValue];
+                    CGPoint coorindate = [touch[kTouchPoint] CGPointValue];
+                    BOOL keyboardTouch = [touch[kTouchKeyboard] boolValue];
                     NSTimeInterval time = [touch[kTouchTime] doubleValue];
                     NSTimeInterval touchTime = 0;
+
+                    if (keyboardTouch == true && ![[TTSettingsManager sharedInstance] isKeyboardTrackingEnabled]) {
+                      continue;
+                    }
 
                     if (firstTouch == -1) {
                       firstTouch = time;
@@ -280,9 +286,6 @@ static const char * uploadQueueTitle         = "uttq";
                     else {
                       touchTime = time-firstTouch;
                     }
-
-                    CGPoint coorindate                  = [touch[kTouchPoint] CGPointValue];
-                    BOOL keyboardTouch                  = [touch[kTouchKeyboard] boolValue];
                     
                     NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"tc\":%li, \"kb\":%d, \"x\":%f, \"y\":%f}", touchTime, (long)tapCount, keyboardTouch, coorindate.x, coorindate.y];
                     if (touch == [touches.allObjects lastObject]) {
