@@ -1,4 +1,7 @@
 # Track Touch Data in iOS
+<a href="https://github.com/Frostbitee08/iOS-Touch-Tracking"><img alt="Release" src="https://img.shields.io/github/release/frostbitee08/iOS-Touch-Tracking.svg" /></a>
+<a href="https://github.com/Frostbitee08/iOS-Touch-Tracking/blob/master/License.txt"><img alt="License" src="https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000" /></a>
+
 Touch Tracking is an [RCOS](http://rcos.io) project that collects data about a users touches. The goal is to visualize this data in order to help both designers and developers have a better understanding of how iOS devices are used. Touch Tracking records the following properties of each touch:
 
 * "t" : The time in seconds at which the touch occured, relative to the first touch in the sequence.
