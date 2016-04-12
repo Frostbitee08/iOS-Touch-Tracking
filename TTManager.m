@@ -8,6 +8,7 @@
 static NSString *const gourl = @"http://159.203.78.76:8000";
 
 //Keys
+NSString *const kTapCount          = @"tc";
 NSString *const kTouchTime         = @"t";
 NSString *const kTouchPoint        = @"p";
 NSString *const kTouchKeyboard     = @"kb";
@@ -253,18 +254,37 @@ static const char * uploadQueueTitle         = "uttq";
                 else                  [writeString appendString:@"\n"];
                 [writeString appendString:@"\t{\n"];
                 [writeString appendString:@"\t\t\"T\" : [\n"];
+
+                NSArray *sortedTouches = [[touches allObjects] sortedArrayUsingComparator: ^(NSDictionary *one, NSDictionary *two) {
+                    NSTimeInterval first = [one[kTouchTime] doubleValue];
+                    NSTimeInterval second = [two[kTouchTime] doubleValue];
+
+                    if (first == second) {
+                        return NSOrderedSame;
+                    }
+                    else if (first < second) {
+                        return NSOrderedAscending;
+                    }
+                    return NSOrderedDescending; 
+                }];
                 
-                for (NSDictionary *touch in touches) {
-                    NSTimeInterval systemUptime = [[NSProcessInfo processInfo] systemUptime];
-                    NSTimeInterval touchTime    = [touch[kTouchTime] doubleValue];
-                    double difference           = systemUptime-touchTime;
-                    
-                    NSDate *touchDate                   = [[NSDate alloc] initWithTimeIntervalSinceNow:difference];
-                    NSTimeInterval secondsSinceMidnight = [touchDate timeIntervalSinceDate:[[NSCalendar currentCalendar] startOfDayForDate:touchDate]];
+                NSTimeInterval firstTouch = -1;;
+                for (NSDictionary *touch in sortedTouches) {
+                    NSInteger tapCount = [touch[kTapCount] integerValue];
+                    NSTimeInterval time = [touch[kTouchTime] doubleValue];
+                    NSTimeInterval touchTime = 0;
+
+                    if (firstTouch == -1) {
+                      firstTouch = time;
+                    }
+                    else {
+                      touchTime = time-firstTouch;
+                    }
+
                     CGPoint coorindate                  = [touch[kTouchPoint] CGPointValue];
                     BOOL keyboardTouch                  = [touch[kTouchKeyboard] boolValue];
                     
-                    NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"kb\":%d, \"x\":%f, \"y\":%f}", secondsSinceMidnight, keyboardTouch, coorindate.x, coorindate.y];
+                    NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"tc\":%li, \"kb\":%d, \"x\":%f, \"y\":%f}", touchTime, (long)tapCount, keyboardTouch, coorindate.x, coorindate.y];
                     if (touch == [touches.allObjects lastObject]) {
                         [touchString appendString:@"\n"];
                     }
@@ -272,7 +292,6 @@ static const char * uploadQueueTitle         = "uttq";
                         [touchString appendString:@",\n"];
                     }
                     [writeString appendString:touchString];
-                    [touchDate release];
                 }
                 [writeString appendString:@"\t\t]\n"];
                 [writeString appendString:@"\t}"];

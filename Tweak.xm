@@ -92,13 +92,14 @@
      CGPoint coordinate = [touch locationInView:sbWindow.rootViewController.view];
      NSValue *touchPoint = [NSValue valueWithCGPoint:coordinate];
      NSNumber *touchTime = @(touch.timestamp);
+     NSNumber *tapCount = @(touch.tapCount);
      NSNumber *touchKeyboard = [NSNumber numberWithBool:FALSE];
     
      if (coordinate.y > [offset floatValue]) {
         touchKeyboard = [NSNumber numberWithBool:TRUE];
      }
 
-     [touches addObject:@{kTouchTime:touchTime, kTouchPoint:touchPoint, kTouchKeyboard:touchKeyboard}];
+     [touches addObject:@{kTouchTime:touchTime, kTouchPoint:touchPoint, kTouchKeyboard:touchKeyboard, kTapCount:tapCount}];
   }
 } 
 
