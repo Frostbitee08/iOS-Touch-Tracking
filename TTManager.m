@@ -5,7 +5,7 @@
 #import <CommonCrypto/CommonDigest.h>
 
 //URLS
-static NSString *const gourl = @"http://159.203.78.76:8000";
+static NSString *const gourl = @"http://touchtracking.roccodelpriore.com/upload";
 
 //Keys
 NSString *const kTapCount          = @"tc";
@@ -165,7 +165,9 @@ static const char * uploadQueueTitle         = "uttq";
     NSString *closedDirectoryPath = [NSString stringWithFormat:@"%@%@/", masterDirectoryPath, closedDirectoryName];
     NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:closedDirectoryPath error:NULL];
     [dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        [self uploadFileWithName:obj];
+        if (![obj isEqualToString:uploadedDirectoryName]) {
+          [self uploadFileWithName:obj];
+        }
     }];
     
     //Delete Old Stuff
@@ -208,7 +210,7 @@ static const char * uploadQueueTitle         = "uttq";
         
         [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
             NSString* newStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-            NSLog(@"TT Uploaded File %@ RESPONSE: %@", filename, newStr);
+            NSLog(@"TT: Uploaded File %@ RESPONSE: %@", filename, newStr);
             
             dispatch_barrier_async(writeQueue, ^{
                 if ([[TTSettingsManager sharedInstance] isDeleteLogsEnabled] && !error) {

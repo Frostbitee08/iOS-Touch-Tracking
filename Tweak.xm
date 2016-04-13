@@ -95,8 +95,6 @@
      NSNumber *tapCount = @(touch.tapCount);
      NSNumber *touchKeyboard = [NSNumber numberWithBool:FALSE];
     
-    NSLog(@"TT: GR %@", touch.gestureRecognizers); 
-    
     if (coordinate.y > [offset floatValue]) {
         touchKeyboard = [NSNumber numberWithBool:TRUE];
      }

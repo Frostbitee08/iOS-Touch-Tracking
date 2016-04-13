@@ -18,6 +18,18 @@
 		</dict>
 		<dict>
 			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.roccodelpriore.touchtracking.settings</string>
+			<key>key</key>
+			<string>KeyboardTrackingEnabled</string>
+			<key>label</key>
+			<string>Keyboard Tracking Enabled</string>
+		</dict>
+		<dict>
+			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>Netwrok</string>
@@ -57,18 +69,6 @@
 			<string>DeleteLogsEnabled</string>
 			<key>label</key>
 			<string>Delete Logs After Upload</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>default</key>
-			<false/>
-			<key>defaults</key>
-			<string>com.roccodelpriore.touchtracking.settings</string>
-			<key>key</key>
-			<string>KeyboardTrackingEnabled</string>
-			<key>label</key>
-			<string>Keyboard Tracking Enabled</string>
 		</dict>
 		<dict>
 			<key>cell</key>
