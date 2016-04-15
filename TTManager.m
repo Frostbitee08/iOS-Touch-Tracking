@@ -290,7 +290,7 @@ static const char * uploadQueueTitle         = "uttq";
                     }
                     
                     NSMutableString *touchString = [NSMutableString stringWithFormat:@"\t\t\t{\"t\":%f, \"tc\":%li, \"kb\":%d, \"x\":%f, \"y\":%f}", touchTime, (long)tapCount, keyboardTouch, coorindate.x, coorindate.y];
-                    if (touch == [touches.allObjects lastObject]) {
+                    if (touch == [sortedTouches lastObject]) {
                         [touchString appendString:@"\n"];
                     }
                     else {
