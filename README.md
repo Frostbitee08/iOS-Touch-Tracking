@@ -27,3 +27,7 @@ A jailbroken iOS device running iOS 9.0 or above.
 The latest beta can be installed by adding `http://repo.roccodelpriore.com` as a repository to cydia.
 
 Alternatively, you can download the latest version [here](https://www.dropbox.com/s/m2bcxg2qvqht3nr/com.roccodelpriore.touchtracking_0.4-15_iphoneos-arm.deb?dl=0)
+
+##Data Visualization
+An early example of non-keyboard touches on an iPhone 6. A single Day was used as the dataset.
+![alt text](http://f.cl.ly/items/3K3v3R0k2p2N2w2L2g1B/confirmed_output.png "iPhone 6")
